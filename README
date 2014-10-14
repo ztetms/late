@@ -1,0 +1,14 @@
+>>> from punch import Punch
+>>> punch = Punch()
+>>> punch.login('your username, eg.10000001', 'your password')
+True
+>>> r = punch.punch()
+>>> print r
+网上刷卡成功
+>>> r = punch.punch()
+>>> print r
+请输入有效的验证码
+>>> r = punch.punch()
+>>> print r
+刷卡时间无效 ,2分钟以内只能刷一次卡
+>>> 
