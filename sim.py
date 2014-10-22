@@ -40,12 +40,12 @@ class SIM900A:
 			'8': 8, '9': 9, 'A': 10, 'B': 11,
 			'C': 12, 'D': 13, 'E': 14, 'F': 15,
 			}
-	def __init__(self, dev):
+	def __init__(self, dev, event_handle = []):
 		self.event = []
 		self.port = Port(dev)
 		self.port.writeline('AT')
 		self.port.clear_recv_buf(1)
-		self.event_handle = [EventSmsHandle, EventRingHandle]
+		self.event_handle = event_handle
 	
 	def get_event_handle(self, event):
 		return [hdl(event) for hdl in self.event_handle if hdl.match(event)]
@@ -151,7 +151,7 @@ class SIM900A:
 	
 	@classmethod
 	def decode_hex_msg(cls, context):
-		return  sim.convert_hex_to_unistring(context) if sim.is_hex_string(context) else context
+		return  cls.convert_hex_to_unistring(context) if cls.is_hex_string(context) else context
 	
 	@classmethod	
 	def sms_parse_cmgl_item(cls, msg):
@@ -201,7 +201,7 @@ class EventSmsHandle(EventHandle):
 		key = '+CMTI: '
 		return event[:len(key)] == key
 		
-	def process(who, when, what):
+	def process(self, who, when, what):
 		pass
 		
 	def handle(self, sim):
@@ -213,9 +213,7 @@ class EventSmsHandle(EventHandle):
 		assert(cmd == '+CMTI')
 		pos = string.atoi(ctx[1])
 		sms = sim.sms_read(pos)
-		print cmd, ctx
 		if sms != None:
-			print sms
 			index, msg, status = sms
 			summary, context = msg
 			sender, ignore, date = summary
