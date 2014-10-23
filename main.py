@@ -36,7 +36,7 @@ def sms_handle(who, when, what):
 	if cmd in CMD:
 		result = CMD[cmd](cmd, context)
 		print who, result
-		#sim.send(who, result)
+		sim.sms_write(who, result)
 	else:
 		print 'unknown command %s' % cmd
 

@@ -11,6 +11,9 @@ class Port():
 	def __init__(self, dev):
 		self.port = serial.Serial(dev)
 		
+	def write(self, buf):
+		self.port.write(buf)
+		
 	def writeline(self, line = ''):
 		self.port.write('%s\r\n' % line)
 
@@ -76,14 +79,16 @@ class SIM900A:
 		event.handle(self)
 		
 		
-	def send_at_cmd(self, cmd):
-		full_cmd = 'AT%s' % cmd
-		self.port.writeline(full_cmd)
+	def send_line(self, cmd):
+		self.port.writeline(cmd)
 		echo = self.port.readline()
-		if not echo == full_cmd:
-			print echo, ',', full_cmd	
-		assert(echo == full_cmd)
-		return echo == full_cmd
+		if not echo == cmd:
+			print echo, ',', cmd	
+		assert(echo == cmd)
+		return echo == cmd
+		
+	def send_at_cmd(self, cmd):
+		return self.send_line('AT%s' % cmd)
 			
 	def read_until(self, until):
 		context = []
@@ -96,15 +101,18 @@ class SIM900A:
 		return line, context
 			
 	def cmd(self, cmd, end):
-		if self.send_at_cmd(cmd):
+		if self.send_line(cmd):
 			result = self.read_until(end)
 		else:
 			sys.stderr.write('send cmd %s failed.\n' % cmd)
 			result = None, None
 		return result
+			
+	def at_cmd(self, cmd, end):
+		return self.cmd('AT%s' % cmd, end)
 		
 	def at_test(self):
-		r, c = self.cmd('', ['OK', 'ERROR'])
+		r, c = self.at_cmd('', ['OK', 'ERROR'])
 		return r
 
 	@staticmethod
@@ -151,6 +159,7 @@ class SIM900A:
 	
 	@classmethod
 	def decode_hex_msg(cls, context):
+		print context
 		return  cls.convert_hex_to_unistring(context) if cls.is_hex_string(context) else context
 	
 	@classmethod	
@@ -173,15 +182,55 @@ class SIM900A:
 		return (tuple([f.strip('"') for f in summary[1:]]), data), summary[0]
 		
 	def sms_read_all(self):
-		r, lines = self.cmd('%s=%s' % ('+CMGL', '"ALL"'), ['OK', 'ERROR'])
+		r, lines = self.at_cmd('%s=%d' % ('+CMGF', 1), ['OK', 'ERROR'])
+		r, lines = self.at_cmd('%s=%s' % ('+CMGL', '"ALL"'), ['OK', 'ERROR'])
 		msgs = self.sms_split(lines)
 		msgs = [self.sms_parse_cmgl_item(msg) for msg in msgs]
 		return msgs
 		
 	def sms_read(self, pos):
-		r, lines = self.cmd('%s=%d' % ('+CMGR', pos), ['OK', 'ERROR'])
+		r, lines = self.at_cmd('%s=%d' % ('+CMGF', 1), ['OK', 'ERROR'])
+		r, lines = self.at_cmd('%s=%d' % ('+CMGR', pos), ['OK', 'ERROR'])
 		msg = self.sms_parse_cmgr_item([line for line in lines if len(line) > 0])
 		return pos, msg[0], msg[1]
+		
+	@staticmethod
+	def sms_pdu_to(to):
+		type = 0x81
+		if to[0] == '+':
+			type = 0x91
+			to = to[1:]
+		size = len(to)
+		to = [string.atoi(c) for c in to] + [15, ]
+		return [size, type, ] + [to[i * 2] + to[i * 2 + 1] * 16 for i in range(len(to) / 2)]
+		
+	@staticmethod
+	def sms_pdu_context(ctx):
+		str = map(ord, ctx)
+		print str
+		str = [str[i / 2] >> 8 * (1 - i % 2) & 0xFF for i in range(len(str) * 2)]
+		print str
+		return [len(str), ] + str
+		
+	@classmethod
+	def sms_pdu(cls, to, context):
+		pdu_field1 = [0x11, 0x00]
+		pdu_to = cls.sms_pdu_to(to)
+		pdu_field2 = [0x00, 0x08, 0xA7]
+		context = cls.sms_pdu_context(context)
+
+		return pdu_field1 + pdu_to + pdu_field2 + context
+		
+	def sms_write(self, to, context):
+		r, lines = self.at_cmd('%s=%d' % ('+CMGF', 0), ['OK', 'ERROR'])
+		sac = [0x00]
+		pdu = self.sms_pdu(to, context)
+		if self.send_at_cmd('%s=%d' % ('+CMGS', len(pdu))):
+			ctx = ''.join(['%02X' % c for c in sac + pdu])
+			self.port.write(ctx)
+			self.port.write(chr(0x1A))
+			self.port.readline()
+			self.port.readline()
 		
 	def run(self):
 		self.run = True
@@ -239,6 +288,10 @@ if __name__ == '__main__':
 		print msg[0], sim.convert_hex_to_unistring(msg[1]) if sim.is_hex_string(msg[1]) else msg[1]
 	print 'read one'
 	print sim.sms_read(msgs[0][0])
+	print sim.sms_read(20)
+	if False:
+		print 'send one'
+		sim.sms_write(u'+8613814120678', u'hello, 你好')
 	raw_input('stop? ')
 	sim.run()
 	
