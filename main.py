@@ -3,7 +3,10 @@
 
 import shlex
 from punch import Punch
-from sim import SIM900A, EventSmsHandle
+from gsm.gsm import GSM
+from gsm.gsm0705 import GSM0705
+from gsm.daemon import DAEMON
+from gsm.port import Serial
 
 def punch(user, passwd):
 	punch = Punch()
@@ -25,7 +28,7 @@ def sms_punch(cmd, arg):
 	return result
 
 CMD = {
-	'SK': sms_punch,
+	'PUNCH': sms_punch,
 }
 
 def sms_handle(who, when, what):
@@ -36,15 +39,16 @@ def sms_handle(who, when, what):
 	if cmd in CMD:
 		result = CMD[cmd](cmd, context)
 		print who, result
-		sim.sms_write(who, result)
+		#sim.sms_write(who, result)
 	else:
 		print 'unknown command %s' % cmd
 
-class MySmsHandle(EventSmsHandle):
-	def process(self, who, when, what):
-		sms_handle(who, when, what)
+def start_daemon(dev):
+	self.port = Serial(dev)
+	self.gsm = GSM(self.port)
+	self.sms = GSM0705(self.gsm)
+	self.daemon = Daemon(self.gsm, [self.sms.GSM0705_CMTI_HANDLE(sms_handle),])
 
 if __name__ == '__main__':
-	sim = SIM900A('COM1', [MySmsHandle, ])
-	sim.run()
+	start_daemon('COM1')
 	

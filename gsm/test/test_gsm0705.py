@@ -25,8 +25,8 @@ class TestCmgR(unittest.TestCase):
 		for line in SMS_READ_1:
 			self.port.mock_put_read(line)
 		sms = self.sms.read(1)
-		where, when, what = sms
-		self.assertEqual(where, '106581541003')
+		who, when, what = sms
+		self.assertEqual(who, '106581541003')
 		self.assertEqual(str(when), '2014-10-22 12:02:48+08:00')
 		self.assertEqual(what, u'\x06\x05\x04\x0b\x84#\xf0@\x06$application/vnd.wap.mms-message\x00\xb4\x87\xaf\x84\x8c\x82\x98VOxaBQFKO4FC\x00\x8d\x90\x83http://221.131.128.129/VOxaBQFKO4FC\x00\x88\x05\x81\x03\x02\xca\r\x89\x07\x8012371\x00\x8a\x80\x8e\x02\xcd~')
 		self.assertEqual('AT+CMGF=0\r\nAT+CMGR=1\r\n', self.port.mock_get_write())
@@ -38,8 +38,8 @@ class TestCmti(unittest.TestCase):
 		self.gsm = GSM(self.port)
 		self.sms = GSM0705(self.gsm)
 
-	def record(self, where, when, what):
-		self.record_sms.append((where, when, what))
+	def record(self, who, when, what):
+		self.record_sms.append((who, when, what))
 		
 	def test_cmti_ok(self):
 		for line in SMS_READ_1:
