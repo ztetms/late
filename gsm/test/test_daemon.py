@@ -4,7 +4,7 @@
 import unittest
 from gsm.gsm import GSM
 from gsm.daemon import DAEMON
-from gsm.test.test_gsm import MockPort
+from gsm.test.mock_port import MockPort
 
 class MyDaemon(DAEMON):
 	def run(self, times = 1):

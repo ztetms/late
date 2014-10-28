@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 #coding=utf-8
 
+import string
 import pdu
 
 class GSM0705:
@@ -22,9 +23,24 @@ class GSM0705:
 		expect = ['OK', 'ERROR']
 		response = self.gsm.send_cmd(self.gsm.at_cmd('%s=%d' % ('+CMGR', position)), expect)
 		result, context = self.gsm.format_response(response, expect)
-		print context
 		if result == 'OK':
 			length, index = reduce(max, zip(map(len, context), range(len(context))))
 			csca, tpdu = pdu.parse(context[index])
 			result = tpdu.oa, tpdu.scts, ''.join(map(unichr, tpdu.ud))
 		return result
+
+
+	def GSM0705_CMTI_HANDLE(self, proc):
+		def handle(event):
+			key = '+CMTI: '
+			def execute():
+				cmd, ctx = self.gsm.parse_notice(event)
+				pos = string.atoi(ctx[1])
+				sms = self.read(pos)
+				if sms != None:
+					where, when, what = sms
+					proc(where, when, what)
+				else:
+					sys.stderr.write('read sms@%d failed.\n' % pos)
+			return [execute,] if event[:len(key)] == key else []
+		return handle

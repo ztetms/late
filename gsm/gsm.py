@@ -1,8 +1,10 @@
 #! /usr/bin/env python
 #coding=utf-8
 
+import shlex
+
 class GSM:
-	def __init__(self, port, event_handle = []):
+	def __init__(self, port):
 		self.port = port
 
 	def send_and_check_echo(self, line):
@@ -26,6 +28,14 @@ class GSM:
 		if self.send_and_check_echo(cmd):
 			result = self.read_until(until)
 		return result
+
+	@staticmethod
+	def parse_notice(s):
+		type, context = s.split(': ', 2)
+		str = shlex.shlex(context, posix = True)
+		str.whitespace = ','
+		str.whitesapce_split = True
+		return type, tuple(str)
 
 	@staticmethod
 	def at_cmd(cmd = ''):
