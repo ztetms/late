@@ -44,11 +44,12 @@ def sms_handle(who, when, what):
 		print 'unknown command %s' % cmd
 
 def start_daemon(dev):
-	self.port = Serial(dev)
-	self.gsm = GSM(self.port)
-	self.sms = GSM0705(self.gsm)
-	self.daemon = Daemon(self.gsm, [self.sms.GSM0705_CMTI_HANDLE(sms_handle),])
+	port = Serial(dev)
+	gsm = GSM(port)
+	sms = GSM0705(gsm)
+	daemon = DAEMON(gsm, [sms.GSM0705_CMTI_HANDLE(sms_handle),])
+	daemon.run()
 
 if __name__ == '__main__':
-	start_daemon('COM1')
+	start_daemon('COM3')
 	

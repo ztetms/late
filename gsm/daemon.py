@@ -67,6 +67,6 @@ class DAEMON():
 				self.engine.add_command(self.READ_EVENT(), PRIV_H)
 		return execute
 
-	def run():
+	def run(self):
 		self.engine.add_command(self.IDLE(), PRIV_L)
 		self.engine.run()
