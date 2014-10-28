@@ -2,7 +2,8 @@
 #coding=utf-8
 
 import unittest
-from gsm.gsm import GSM, GSM0705
+from gsm.gsm import GSM
+from gsm.gsm0705 import GSM0705
 
 class MockPort():
 	def __init__(self, test):

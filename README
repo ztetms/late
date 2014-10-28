@@ -1,3 +1,4 @@
+python
 >>> from punch import Punch
 >>> punch = Punch()
 >>> punch.login('your username, eg.10000001', 'your password')
@@ -12,3 +13,8 @@ True
 >>> print r
 刷卡时间无效 ,2分钟以内只能刷一次卡
 >>> 
+
+
+python -m gsm.test.test_gsm
+python -m gsm.test.test_daemon
+python -m doctest gsm/pdu.py
