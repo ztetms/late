@@ -5,7 +5,7 @@ import serial
 
 class Serial():
 	def __init__(self, dev):
-		self.port = serial.Serial(dev)
+		self.port = serial.Serial(dev, 9600, timeout = 1)
 
 	def read(self, size = 1):
 		return self.port.read(size)

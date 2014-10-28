@@ -51,5 +51,5 @@ def start_daemon(dev):
 	daemon.run()
 
 if __name__ == '__main__':
-	start_daemon('COM3')
+	start_daemon('COM4')
 	
