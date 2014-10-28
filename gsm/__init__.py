@@ -1,4 +1,5 @@
 __all__ = [
-    'GSM',
-	'PDU'
+    'gsm',
+	'pdu',
+	'daemon',
     ]

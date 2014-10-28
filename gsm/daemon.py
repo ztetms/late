@@ -18,8 +18,8 @@ class ACTIVE_OBJECT_ENGINE():
 		return 0 == reduce(add, map(len, self.__its_commands))
 
 	def pop_cmd(self, priv = 0):
-		return self.__its_commands[priv].pop(0) 
-			if len(self.__its_commands[priv]) > 0
+		return self.__its_commands[priv].pop(0) \
+			if len(self.__its_commands[priv]) > 0 \
 			else self.pop_cmd(priv + 1)
 
 	def run(self):

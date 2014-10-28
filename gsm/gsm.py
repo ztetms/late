@@ -7,7 +7,7 @@ import serial
 import string
 import shlex
 
-from gsm_pdu import PDU
+import pdu
 
 class Serial():
 	def __init__(self, dev):
@@ -88,6 +88,6 @@ class GSM0705:
 		print context
 		if result == 'OK':
 			length, index = reduce(max, zip(map(len, context), range(len(context))))
-			csca, tpdu = PDU.parse(context[index])
+			csca, tpdu = pdu.parse(context[index])
 			result = tpdu.oa, tpdu.scts, ''.join(map(unichr, tpdu.ud))
 		return result

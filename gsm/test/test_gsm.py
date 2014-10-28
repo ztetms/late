@@ -1,8 +1,8 @@
 #! /usr/bin/env python
 #coding=utf-8
 
-from gsm import GSM, GSM0705
 import unittest
+from gsm.gsm import GSM, GSM0705
 
 class MockPort():
 	def __init__(self, test):
