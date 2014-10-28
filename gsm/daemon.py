@@ -7,47 +7,66 @@ PRIV_L = 2
 
 class ACTIVE_OBJECT_ENGINE():
 	def __init__(self):
-		self.__its_commands = [[],[],[]]
+		self.empty()
 		self.__priv = range(len(self.__its_commands))
 
-	def add_command(self, priv, cmd):
+	def add_command(self, cmd, priv = PRIV_L):
 		assert(priv in self.__priv)
 		self.__its_commands[priv].append(cmd)
 
 	def is_empty(self):
-		return 0 == reduce(add, map(len, self.__its_commands))
+		return 0 == reduce(lambda x, y: x + y,
+				map(len, self.__its_commands))
 
-	def pop_cmd(self, priv = 0):
-		return self.__its_commands[priv].pop(0) \
+	def empty(self):
+		self.__its_commands = [[],[],[]]
+		
+	def pop_cmd(self, priv = PRIV_H):
+		return self.__its_commands[priv].pop(PRIV_H) \
 			if len(self.__its_commands[priv]) > 0 \
 			else self.pop_cmd(priv + 1)
 
 	def run(self):
-		while self.is_empty():
+		while not self.is_empty():
 			cmd = self.pop_cmd()
 			cmd()
 
-def IDLE(engine, gsm):
-	def execute():
-		engine.add_command(PRIV_L, IDLE(engine, gsm))
-		engine.add_command(PRIV_H, READ_EVENT(engine, gsm))
-	return execute
+class DAEMON():
+	def __init__(self, gsm, event_handle = []):
+		self.gsm = gsm
+		self.event_handle = event_handle
+		self.engine = ACTIVE_OBJECT_ENGINE()
+		
+	def dispatch_event(self, line):
+		for handle in self.event_handle:
+			cmds = handle(line)
+			for cmd in cmds:
+				self.engine.add_command(cmd, PRIV_M)
+		
+	def STOP(self):
+		def execute():
+			self.engine.empty()
+		return execute
+		
+	def IDLE(self):
+		def execute():
+			self.engine.add_command(self.IDLE(), PRIV_L)
+			self.engine.add_command(self.READ_EVENT(), PRIV_H)
+		return execute
 
-def HANDLE_EVENT(self, gsm, line):
-	def execute(self):
-		print line
-	return execute
+	def DISPATCH_EVENT(self, line):
+		def execute():
+			self.dispatch_event(line)
+		return execute
 
-def READ_EVENT(self, engine, gsm):
-	def execute(self):
-		line = gsm.readline()
-		if len(line) > 0:
-			engine.add_command(PRIV_M, HANDLE_EVENT(engine, gsm))
-			engine.add_command(PRIV_M, READ_EVENT(engine, gsm))
-			engine.add_command(PRIV_H, READ_EVENT(engine, gsm))
-	return execute
+	def READ_EVENT(self):
+		def execute():
+			line = self.gsm.read_event()
+			if len(line) > 0:
+				self.engine.add_command(self.DISPATCH_EVENT(line), PRIV_M)
+				self.engine.add_command(self.READ_EVENT(), PRIV_H)
+		return execute
 
-def run(gsm):
-	engine = ACTIVE_OBJECT_ENGINE
-	engine.add_command(PRIV_L, IDLE(engine, gsm))
-	engine.run()
+	def run():
+		self.engine.add_command(self.IDLE(), PRIV_L)
+		self.engine.run()

@@ -30,6 +30,9 @@ class GSM:
 		self.port.write(line)
 		read = self.port.read(len(line))
 		return read == line
+		
+	def read_event(self):
+		return self.port.readline()
 
 	def read_until(self, expect):
 		result = []
