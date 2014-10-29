@@ -11,43 +11,49 @@ INTERNATION_NUMBER = 1
 NATIONAL_NUMBER = 2
 NATIONAL_NUMBERING_PLAN = 8
 HEX2DEC = dict(zip(list('0123456789ABCDEF'), range(16)))
-
-def merge_elements(list, multiple, num = 2):
-	'''
-	>>> merge_elements([1, 2, 3, 4], 2, 2)
-	[4, 10]
-	'''
-	assert(len(list) % num == 0)
-	return map(
-		lambda index: reduce(lambda acc, item: acc * multiple + item,
-			list[index * num:(index + 1) * num], 0),
-		range(len(list) / num))
 		
 def parse_hex_string(string):
 	'''
 	>>> parse_hex_string('FEDCBA9876543210')
 	[254, 220, 186, 152, 118, 84, 50, 16]
 	'''
-	return merge_elements([HEX2DEC[c] for c in string], 16, 2)
+	n = 2
+	return [int(string[i:i + n], 16) for i in range(0, len(string), n)]
 	
-def bits(byte, offset, mask):
+def bits_decode(byte, offset, mask):
 	'''
-	>>> bits(12, 2, 3)
+	>>> bits_decode(12, 2, 3)
 	3
 	'''
 	return (byte >> offset) & mask
 	
+def bits_encode(bits, offset, mask):
+	'''
+	>>> bits_encode(3, 2, 3)
+	12
+	'''
+	return (bits & mask) << offset
+	
 def decode_address(data):
 	ext_ton_npi = data[0]
 	address = data[1:]
-	ext = bits(ext_ton_npi, 7, 0x1)
-	ton = bits(ext_ton_npi, 4, 0x7)
-	npi = bits(ext_ton_npi, 0, 0xF)
+	ext = bits_decode(ext_ton_npi, 7, 0x1)
+	ton = bits_decode(ext_ton_npi, 4, 0x7)
+	npi = bits_decode(ext_ton_npi, 0, 0xF)
 	assert(ext == 1) # The EXT bit is always 1 meaning "no extension"
-	plus = '+' if ton == INTERNATION_NUMBER and not npi == NATIONAL_NUMBERING_PLAN else ''
+	plus = u'+' if ton == INTERNATION_NUMBER and not npi == NATIONAL_NUMBERING_PLAN else u''
 	number = filter(lambda n: n in range(10),
 			[address[i / 2] >> 4 * (i % 2) & 0xF for i in range(len(address) * 2)])
-	return plus + ''.join(['%d' % num for num in number])
+	return plus + u''.join(['%d' % num for num in number])
+		
+def decode_datetime(data):
+	'''
+	>>> print decode_datetime([65, 1, 18, 81, 1, 129, 35])
+	2014-10-21 15:10:18+08:00
+	'''
+	date_data = [(-1 if c & 0x8 else 1) * ((c & 0x7) * 10 + ((c & 0xF0) >> 4)) for c in data]
+	date = dict(zip(['year', 'month', 'day', 'hour', 'minute', 'second', 'tzone'], date_data))
+	return datetime.datetime(2000 + date['year'], date['month'], date['day'], date['hour'], date['minute'], date['second'], 0, PDU_TIMEZONE(date['tzone']))
 	
 def decode_csca(data):
 	return decode_address(data[1:]) if data[0] > 0 else None
@@ -56,9 +62,9 @@ def parse(string):
 	'''
 	>>> csca, tpdu = parse('0891683108501955F1040D91683118140276F8000841011251018123044F60597D')
 	>>> csca
-	'+8613800591551'
+	u'+8613800591551'
 	>>> tpdu.oa
-	'+8613814120678'
+	u'+8613814120678'
 	'''
 	data = parse_hex_string(string)
 	csca_length = data[0]
@@ -162,7 +168,7 @@ class SMS_DELIVER():
 
 	>>> tpdu = SMS_DELIVER.parse('040D91683118140276F8000841011251018123044F60597D')
 	>>> tpdu.oa
-	'+8613814120678'
+	u'+8613814120678'
 	>>> ''.join(map(unichr, tpdu.ud))
 	u'\u4f60\u597d'
 	'''
@@ -192,13 +198,13 @@ class SMS_DELIVER():
 			tpdu = SMS_DELIVER()
 			
 			first = data.pop(0)
-			tpdu.mti = bits(first, 0, 2)
-			tpdu.mms = bits(first, 2, 1)
+			tpdu.mti = bits_decode(first, 0, 3)
+			tpdu.mms = bits_decode(first, 2, 1)
 			assert(tpdu.mti == cls.mti())
 			tpdu.oa = cls.decode_address([data.pop(0) for c in range(2 + (data[0] + 1) / 2)])
 			tpdu.pid = data.pop(0)
 			dcs = data.pop(0)
-			tpdu.scts = cls.decode_datetime([data.pop(0) for c in range(7)])
+			tpdu.scts = decode_datetime([data.pop(0) for c in range(7)])
 			udl = data.pop(0)
 			ud_decoder = UD_FACTORY.creator(dcs)
 			tpdu.ud = ud_decoder.decode(udl, [data.pop(0) for c in range(ud_decoder.byte_size(udl))])
@@ -208,16 +214,6 @@ class SMS_DELIVER():
 	@staticmethod
 	def decode_address(data):
 		return decode_address(data[1:])
-		
-	@staticmethod
-	def decode_datetime(data):
-		'''
-		>>> print SMS_DELIVER.decode_datetime([65, 1, 18, 81, 1, 129, 35])
-		2014-10-21 15:10:18+08:00
-		'''
-		date_data = [(-1 if c & 0x8 else 1) * ((c & 0x7) * 10 + ((c & 0xF0) >> 4)) for c in data]
-		date = dict(zip(['year', 'month', 'day', 'hour', 'minute', 'second', 'tzone'], date_data))
-		return datetime.datetime(2000 + date['year'], date['month'], date['day'], date['hour'], date['minute'], date['second'], 0, PDU_TIMEZONE(date['tzone']))
 		
 class SMS_SUBMIT():
 	'''
@@ -237,6 +233,6 @@ class TPDU_FACTORY():
 	TPDUS = [SMS_DELIVER, ]
 	@classmethod
 	def from_code(cls, code):
-		mti = bits(code[0], 0, 2)
+		mti = bits_decode(code[0], 0, 2)
 		return dict(map(lambda tpdu: (tpdu.mti(), tpdu),
 			cls.TPDUS))[mti].decode(code)
