@@ -29,7 +29,6 @@ CMG_SEND = (
 		'\r\n',
 		'OK\r\n')
 
-
 class TestCmgR(unittest.TestCase):
 	def setUp(self):
 		self.port = MockPort(self)

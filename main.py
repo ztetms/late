@@ -28,18 +28,18 @@ def sms_punch(cmd, arg):
 	return result
 
 CMD = {
-	'PUNCH': sms_punch,
+	u'punch': sms_punch,
 }
 
-def sms_handle(who, when, what):
-	sms = tuple(what.split(',', 1))
-	cmd = sms[0]
-	context = sms[1] if len(sms) > 1 else ''
+def sms_proc(sms, who, when, what):
+	msg = tuple(what.split(',', 1))
+	cmd = msg[0].lower()
+	context = msg[1] if len(msg) > 1 else ''
 	
 	if cmd in CMD:
 		result = CMD[cmd](cmd, context)
 		print who, result
-		#sim.sms_write(who, result)
+		sms.send(who, u''.join([cmd, '->', result]))
 	else:
 		print 'unknown command %s' % cmd
 
@@ -47,9 +47,11 @@ def start_daemon(dev):
 	port = Serial(dev)
 	gsm = GSM(port)
 	sms = GSM0705(gsm)
+	def sms_handle(who, when, what):
+		sms_proc(sms, who, when, what)
 	daemon = DAEMON(gsm, [sms.GSM0705_CMTI_HANDLE(sms_handle),])
 	daemon.run()
 
 if __name__ == '__main__':
-	start_daemon('COM4')
+	start_daemon('COM1')
 	
