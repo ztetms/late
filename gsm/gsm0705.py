@@ -3,6 +3,7 @@
 
 import string
 import pdu
+from pdu import SMS_SUBMIT
 
 class GSM0705:
 	CMGF_PDU = 0
@@ -28,6 +29,24 @@ class GSM0705:
 			csca, tpdu = pdu.parse(context[index])
 			result = tpdu.oa, tpdu.scts, ''.join(map(unichr, tpdu.ud))
 		return result
+
+	def send(self, to, ctx):
+		r = False
+		self.config(self.CMGF_PDU)
+		sca = [0]
+		code = SMS_SUBMIT.encode(to, ctx)
+		expect = ['> ', 'OK', 'ERROR']
+		response = self.gsm.send_cmd(self.gsm.at_cmd('%s=%d' % ('+CMGS', len(code))), expect)
+		result, context = self.gsm.format_response(response, expect)
+		if result == '> ':
+			expect = ['OK', 'ERROR']
+			line = ''.join(['%02X' % c for c in sca + code])
+			response = self.gsm.send_cmd(line + chr(0x1A), expect)
+			result, context = self.gsm.format_response(response, expect)
+			r = result == 'OK'
+		else:
+			print result
+		return r
 
 
 	def GSM0705_CMTI_HANDLE(self, proc):

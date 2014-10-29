@@ -143,14 +143,8 @@ class PDU_TIMEZONE(datetime.tzinfo):
 
 	def dst(self, dt):
 		return ZERO
-		
-class TPDU():
-	MT_RESERVED = 3
-	@classmethod
-	def mti(cls):
-		return cls.MT_RESERVED
 	
-class SMS_DELIVER(TPDU):
+class SMS_DELIVER():
 	'''
 	mti = Message Type Indicator
 	mms = More Messages to Send
@@ -224,7 +218,21 @@ class SMS_DELIVER(TPDU):
 		date_data = [(-1 if c & 0x8 else 1) * ((c & 0x7) * 10 + ((c & 0xF0) >> 4)) for c in data]
 		date = dict(zip(['year', 'month', 'day', 'hour', 'minute', 'second', 'tzone'], date_data))
 		return datetime.datetime(2000 + date['year'], date['month'], date['day'], date['hour'], date['minute'], date['second'], 0, PDU_TIMEZONE(date['tzone']))
-				
+		
+class SMS_SUBMIT():
+	'''
+	'''
+	MT_SMS_SUBMIT = 1
+	
+	@classmethod
+	def mti(cls):
+		return cls.MT_SMS_SUBMIT
+
+	@classmethod
+	def encode(cls, to, context):
+		return parse_hex_string('11000D91683118140276F80008A70A00680065006C006C006F')
+
+
 class TPDU_FACTORY():
 	TPDUS = [SMS_DELIVER, ]
 	@classmethod
