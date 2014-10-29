@@ -6,6 +6,7 @@ from punch import Punch
 from gsm.gsm import GSM
 from gsm.gsm0705 import GSM0705
 from gsm.daemon import DAEMON
+from gsm.daemon import PRIV_M
 from gsm.port import Serial
 
 def punch(user, passwd):
@@ -31,7 +32,7 @@ CMD = {
 	u'punch': sms_punch,
 }
 
-def sms_proc(sms, who, when, what):
+def sms_proc(daemon, sms, who, when, what):
 	msg = tuple(what.split(',', 1))
 	cmd = msg[0].lower()
 	context = msg[1] if len(msg) > 1 else ''
@@ -39,7 +40,11 @@ def sms_proc(sms, who, when, what):
 	if cmd in CMD:
 		result = CMD[cmd](cmd, context)
 		print who, result
-		sms.send(who, u''.join([cmd, '->', result]))
+
+		def send():
+			sms.send(who, u''.join([cmd, '->', result]))
+		daemon.add_command(daemon.READ_EVENT, PRIV_M)
+		daemon.add_command(send, PRIV_M)
 	else:
 		print 'unknown command %s' % cmd
 
@@ -47,9 +52,10 @@ def start_daemon(dev):
 	port = Serial(dev)
 	gsm = GSM(port)
 	sms = GSM0705(gsm)
+	daemon = DAEMON(gsm, [])
 	def sms_handle(who, when, what):
-		sms_proc(sms, who, when, what)
-	daemon = DAEMON(gsm, [sms.GSM0705_CMTI_HANDLE(sms_handle),])
+		sms_proc(daemon, sms, who, when, what)
+	daemon.add_event_handle(sms.GSM0705_CMTI_HANDLE(sms_handle))
 	daemon.run()
 
 if __name__ == '__main__':

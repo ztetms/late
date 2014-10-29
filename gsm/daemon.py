@@ -36,7 +36,13 @@ class DAEMON():
 		self.gsm = gsm
 		self.event_handle = event_handle
 		self.engine = ACTIVE_OBJECT_ENGINE()
-		
+
+	def add_command(self, cmd, priv):
+		self.engine.add_command(cmd, priv)
+
+	def add_event_handle(self, handle):
+		self.event_handle.append(handle)
+
 	def dispatch_event(self, line):
 		for handle in self.event_handle:
 			cmds = handle(line)
