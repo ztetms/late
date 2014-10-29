@@ -45,6 +45,15 @@ def decode_address(data):
 	number = filter(lambda n: n in range(10),
 			[address[i / 2] >> 4 * (i % 2) & 0xF for i in range(len(address) * 2)])
 	return plus + u''.join(['%d' % num for num in number])
+	
+def encode_address(addr):
+	type = 0x81
+	if addr[0] == u'+':
+		type = 0x91
+		addr = addr[1:]
+	size = len(addr)
+	addr = map(int, addr) + [15, ]
+	return size, [type, ] + [addr[i * 2] + addr[i * 2 + 1] * 16 for i in range(len(addr) / 2)]
 		
 def decode_datetime(data):
 	'''
@@ -116,6 +125,10 @@ class UD_UCS2():
 	@staticmethod
 	def byte_size(number):
 		return number
+		
+	@classmethod
+	def encode(cls, data):
+		return len(data) * 2, [data[i / 2] >> 8 * (1 - i % 2) & 0xFF for i in range(len(data) * 2)]
 		
 	@classmethod
 	def decode(cls, number, bytes):
@@ -217,8 +230,11 @@ class SMS_DELIVER():
 		
 class SMS_SUBMIT():
 	'''
+	>>> print ''.join(['%02X' % c for c in SMS_SUBMIT.encode(u'+8613814120678', u'hello')])
+	11000D91683118140276F80008A70A00680065006C006C006F
 	'''
 	MT_SMS_SUBMIT = 1
+	VPF_RELATIVE = 2
 	
 	@classmethod
 	def mti(cls):
@@ -226,11 +242,27 @@ class SMS_SUBMIT():
 
 	@classmethod
 	def encode(cls, to, context):
-		return parse_hex_string('11000D91683118140276F80008A70A00680065006C006C006F')
 
+		mti = cls.MT_SMS_SUBMIT
+		rd = 0
+		rp = 0
+		mr = 0
+		pid = 0
+		dcs = DSC_UCS2
+		udl, ud = UD_FACTORY.creator(dcs).encode(map(ord, context))
+		da = cls.encode_address(to)
+		vpf, vp = (cls.VPF_RELATIVE, [167]) # VPF_RELATIVE+167 -> 24hours
+
+		first = bits_encode(mti, 0, 3) | bits_encode(rd, 0, 1) | bits_encode(vpf, 3, 3) | bits_encode(rp, 7, 1)
+		return [first, mr] + da + [pid, dcs] + vp + [udl] + ud
+		
+	@staticmethod
+	def encode_address(addr):
+		n, code = encode_address(addr)
+		return [n] + code
 
 class TPDU_FACTORY():
-	TPDUS = [SMS_DELIVER, ]
+	TPDUS = [SMS_DELIVER, SMS_SUBMIT]
 	@classmethod
 	def from_code(cls, code):
 		mti = bits_decode(code[0], 0, 2)
