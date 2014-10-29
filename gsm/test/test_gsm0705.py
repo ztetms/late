@@ -6,10 +6,14 @@ from gsm.gsm import GSM
 from gsm.gsm0705 import GSM0705
 from gsm.test.mock_port import MockPort
 
-SMS_READ_1 = (
+SMD_CFG_0 = (
 		'AT+CMGF=0\r\n',
-		'OK\r\n',
+		'\r\n',
+		'OK\r\n')
+
+SMS_READ_1 = (
 		'AT+CMGR=1\r\n',
+		'\r\n',
 		'+CMGR: 1,"",142\r\n',
 		'0891683108200545F6640C980156184501300004410122212084237B0605040B8423F04006246170706C69636174696F6E2F766E642E7761702E6D6D732D6D65737361676500B487AF848C8298564F78614251464B4F344643008D9083687474703A2F2F3232312E3133312E3132382E3132392F564F78614251464B4F344643008805810302CA0D8907803132333731008A808E02CD7E\r\n',
 		'\r\n',
@@ -22,8 +26,8 @@ class TestCmgR(unittest.TestCase):
 		self.sms = GSM0705(self.gsm)
 		
 	def test_read(self):
-		for line in SMS_READ_1:
-			self.port.mock_put_read(line)
+		self.port.mock_put_read_multi(SMD_CFG_0)
+		self.port.mock_put_read_multi(SMS_READ_1)
 		sms = self.sms.read(1)
 		who, when, what = sms
 		self.assertEqual(who, '106581541003')
@@ -42,8 +46,8 @@ class TestCmti(unittest.TestCase):
 		self.record_sms.append((who, when, what))
 		
 	def test_cmti_ok(self):
-		for line in SMS_READ_1:
-			self.port.mock_put_read(line)
+		self.port.mock_put_read_multi(SMD_CFG_0)
+		self.port.mock_put_read_multi(SMS_READ_1)
 		handle = self.sms.GSM0705_CMTI_HANDLE(self.record)
 		cmds = handle('+CMTI: "SM",1,"MMS PUSH"')
 		self.assertEqual(1, len(cmds))

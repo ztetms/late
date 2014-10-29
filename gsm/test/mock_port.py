@@ -26,7 +26,11 @@ class MockPort():
 		self.__write.append(string)
 
 	def mock_put_read(self, string):
-		self.__read.append(string)
+			self.__read.append(string)
+
+	def mock_put_read_multi(self, strings):
+		for string in strings:
+			self.__read.append(string)
 
 	def mock_get_write(self):
 		return ''.join(self.__write)
