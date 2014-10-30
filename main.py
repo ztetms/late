@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 #coding=utf-8
 
+import sys
 import shlex
 from punch import Punch
 from gsm.gsm import GSM
@@ -8,6 +9,7 @@ from gsm.gsm0705 import GSM0705
 from gsm.daemon import DAEMON
 from gsm.daemon import PRIV_M
 from gsm.port import Serial
+from gsm.port import Telnet
 
 def punch(user, passwd):
 	punch = Punch()
@@ -47,9 +49,12 @@ def sms_proc(daemon, sms, who, when, what):
 		daemon.add_command(send, PRIV_M)
 	else:
 		print 'unknown command %s' % cmd
+	
+def create_port(type, cfg):
+	return apply(getattr(sys.modules['gsm.port'], type), cfg)
 
 def start_daemon(dev):
-	port = Serial(dev)
+	port = create_port(dev[0], dev[1])
 	gsm = GSM(port)
 	sms = GSM0705(gsm)
 	daemon = DAEMON(gsm, [])
@@ -59,5 +64,9 @@ def start_daemon(dev):
 	daemon.run()
 
 if __name__ == '__main__':
-	start_daemon('COM1')
-	
+	dev_cfg = sys.argv[1:]
+	if len(dev_cfg) > 0:
+		start_daemon((dev_cfg[0], dev_cfg[1:]))
+	else:
+		sys.stderr.write('The device type is not specified.')
+		sys.exit(-1)
