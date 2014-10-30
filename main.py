@@ -34,17 +34,22 @@ CMD = {
 	u'punch': sms_punch,
 }
 
-def sms_proc(daemon, sms, who, when, what):
-	msg = tuple(what.split(',', 1))
-	cmd = msg[0].lower()
-	context = msg[1] if len(msg) > 1 else ''
+def sms_proc(daemon, sms, msg):
+	where, who, when, what = msg
+	context = tuple(what.split(',', 1))
+	cmd = context[0].lower()
+	args = context[1] if len(context) > 1 else ''
 	
 	if cmd in CMD:
-		result = CMD[cmd](cmd, context)
+		result = CMD[cmd](cmd, args)
 		print who, result
 
 		def send():
 			sms.send(who, u''.join([cmd, '->', result]))
+		def delete():
+			sms.delete(where)
+		daemon.add_command(daemon.READ_EVENT, PRIV_M)
+		daemon.add_command(delete, PRIV_M)
 		daemon.add_command(daemon.READ_EVENT, PRIV_M)
 		daemon.add_command(send, PRIV_M)
 	else:
@@ -58,8 +63,8 @@ def start_daemon(dev):
 	gsm = GSM(port)
 	sms = GSM0705(gsm)
 	daemon = DAEMON(gsm, [])
-	def sms_handle(who, when, what):
-		sms_proc(daemon, sms, who, when, what)
+	def sms_handle(where, who, when, what):
+		sms_proc(daemon, sms, (where, who, when, what))
 	daemon.add_event_handle(sms.GSM0705_CMTI_HANDLE(sms_handle))
 	daemon.run()
 

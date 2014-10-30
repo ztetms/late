@@ -29,6 +29,12 @@ CMG_SEND = (
 		'\r\n',
 		'OK\r\n')
 
+CMG_DELETE_1 = (
+		'AT+CMGD=1\r\n',
+		'\r\n',
+		'OK\r\n')
+
+
 class TestCmgR(unittest.TestCase):
 	def setUp(self):
 		self.port = MockPort(self)
@@ -52,8 +58,8 @@ class TestCmti(unittest.TestCase):
 		self.gsm = GSM(self.port)
 		self.sms = GSM0705(self.gsm)
 
-	def record(self, who, when, what):
-		self.record_sms.append((who, when, what))
+	def record(self, where, who, when, what):
+		self.record_sms.append((where, who, when, what))
 		
 	def test_cmti_ok(self):
 		self.port.mock_put_read_multi(CMG_CFG_0)
@@ -64,7 +70,9 @@ class TestCmti(unittest.TestCase):
 		for cmd in cmds:
 			cmd()
 		self.assertEqual(1, len(self.record_sms))
-		self.assertEqual('106581541003', self.record_sms[0][0])
+		where, who, when, what = self.record_sms[0]
+		self.assertEqual(1, where)
+		self.assertEqual('106581541003', who)
 
 
 class TestCmgS(unittest.TestCase):
@@ -78,6 +86,17 @@ class TestCmgS(unittest.TestCase):
 		self.port.mock_put_read_multi(CMG_SEND)
 		self.assertTrue(self.sms.send(u'+8613814120678', u'hello'))
 		self.assertEqual('AT+CMGF=0\r\nAT+CMGS=25\r\n0011000D91683118140276F80008A70A00680065006C006C006F\x1a', self.port.mock_get_write())
+
+class TestCmgD(unittest.TestCase):
+	def setUp(self):
+		self.port = MockPort(self)
+		self.gsm = GSM(self.port)
+		self.sms = GSM0705(self.gsm)
+		
+	def test_delete(self):
+		self.port.mock_put_read_multi(CMG_DELETE_1)
+		self.assertTrue(self.sms.delete(1))
+		self.assertEqual('AT+CMGD=1\r\n', self.port.mock_get_write())
 
 if __name__ == '__main__':
 	unittest.main()

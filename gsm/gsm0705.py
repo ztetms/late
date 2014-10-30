@@ -48,6 +48,11 @@ class GSM0705:
 			print result
 		return r
 
+	def delete(self, position):
+		expect = ['OK', 'ERROR']
+		response = self.gsm.send_cmd(self.gsm.at_cmd('%s=%d' % ('+CMGD', position)), expect)
+		result, context = self.gsm.format_response(response, expect)
+		return result == 'OK'
 
 	def GSM0705_CMTI_HANDLE(self, proc):
 		def handle(event):
@@ -57,8 +62,8 @@ class GSM0705:
 				pos = string.atoi(ctx[1])
 				sms = self.read(pos)
 				if sms != None:
-					where, when, what = sms
-					proc(where, when, what)
+					who, when, what = sms
+					proc(pos, who, when, what)
 				else:
 					sys.stderr.write('read sms@%d failed.\n' % pos)
 			return [execute,] if event[:len(key)] == key else []
