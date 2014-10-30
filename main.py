@@ -76,6 +76,9 @@ def start_daemon(dev):
 	daemon.run()
 
 if __name__ == '__main__':
+	reload(sys)
+	sys.setdefaultencoding('utf-8')
+	
 	dev_cfg = sys.argv[1:]
 	if len(dev_cfg) > 0:
 		start_daemon((dev_cfg[0], dev_cfg[1:]))
