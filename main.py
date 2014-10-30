@@ -34,24 +34,31 @@ CMD = {
 	u'punch': sms_punch,
 }
 
+def sms_del_async(daemon, sms, where):
+	def delete():
+		sms.delete(where)
+	daemon.add_command(daemon.READ_EVENT, PRIV_M)
+	daemon.add_command(delete, PRIV_M)
+
+def sms_send_async(daemon, sms, who, context):
+	def send():
+		sms.send(who, context)
+	daemon.add_command(daemon.READ_EVENT, PRIV_M)
+	daemon.add_command(send, PRIV_M)
+
 def sms_proc(daemon, sms, msg):
 	where, who, when, what = msg
 	context = tuple(what.split(',', 1))
 	cmd = context[0].lower()
 	args = context[1] if len(context) > 1 else ''
 	
+	sms_del_async(daemon, sms, where)
+	
 	if cmd in CMD:
 		result = CMD[cmd](cmd, args)
 		print who, result
-
-		def send():
-			sms.send(who, u''.join([cmd, '->', result]))
-		def delete():
-			sms.delete(where)
-		daemon.add_command(daemon.READ_EVENT, PRIV_M)
-		daemon.add_command(delete, PRIV_M)
-		daemon.add_command(daemon.READ_EVENT, PRIV_M)
-		daemon.add_command(send, PRIV_M)
+		
+		sms_send_async(daemon, sms, who, u''.join([cmd, '->', result]))
 	else:
 		print 'unknown command %s' % cmd
 	
