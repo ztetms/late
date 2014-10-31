@@ -1,6 +1,8 @@
 #!/bin/sh
 ### BEGIN INIT INFO
 # Provides:          zte
+# required-start:
+# required-stop:
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Short-Description: late daemons
@@ -11,8 +13,11 @@
 . /lib/lsb/init-functions
 
 # Default variables
+ROOT="/opt/late"
 DEV="Telnet 10.46.74.82 10006"
 LATE="python main.py $DEV"
+
+cd $ROOT
 
 case "$1" in
   start)
