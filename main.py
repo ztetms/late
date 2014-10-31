@@ -3,6 +3,8 @@
 
 import sys
 import shlex
+import logging
+
 from punch import Punch
 from gsm.gsm import GSM
 from gsm.gsm0705 import GSM0705
@@ -13,11 +15,11 @@ from gsm.port import Telnet
 
 def punch(user, passwd):
 	punch = Punch()
-	print 'punch', user, '*' * len(passwd)
 	if punch.login(user, passwd):
 		result = punch.punch()
 	else:
 		result = 'login failed'
+	logging.info('punch %s %s %s', (user, '*' * len(passwd), result))
 	return result
 
 def sms_punch(cmd, arg):
@@ -27,6 +29,7 @@ def sms_punch(cmd, arg):
 		result = punch(usr, pwd)
 	else:
 		result = 'parameter error'
+		logging.warning('Punch parameter is error. %s' % arg)
 		
 	return result
 
@@ -56,14 +59,16 @@ def sms_proc(daemon, sms, msg):
 	
 	if cmd in CMD:
 		result = CMD[cmd](cmd, args)
-		print who, result
-		
 		sms_send_async(daemon, sms, who, u''.join([cmd, '->', result]))
 	else:
-		print 'unknown command %s' % cmd
+		logging.warning('Unknown SMS command %s.' % cmd)
 	
 def create_port(type, cfg):
 	return apply(getattr(sys.modules['gsm.port'], type), cfg)
+	
+def cut_msg(msg, max):
+	ppp = '...'
+	return msg if len(msg) <= max else '%s%s' % (msg[:max - len(ppp)], ppp)
 
 def start_daemon(dev):
 	port = create_port(dev[0], dev[1])
@@ -71,16 +76,26 @@ def start_daemon(dev):
 	sms = GSM0705(gsm)
 	daemon = DAEMON(gsm, [])
 	def sms_handle(where, who, when, what):
+		logging.info('+SMS: %s %s %d %s' % (who, when, len(what), cut_msg(what, 16)))
 		sms_proc(daemon, sms, (where, who, when, what))
 	daemon.add_event_handle(sms.GSM0705_CMTI_HANDLE(sms_handle))
 	daemon.run()
 
-if __name__ == '__main__':
+def config():
 	reload(sys)
 	sys.setdefaultencoding('utf-8')
 	
+	logging.basicConfig(
+		filename = 'late.log',
+		level = logging.INFO,
+		format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+	
+if __name__ == '__main__':
+	config()
+	
 	dev_cfg = sys.argv[1:]
 	if len(dev_cfg) > 0:
+		logging.info('Starting...')
 		start_daemon((dev_cfg[0], dev_cfg[1:]))
 	else:
 		sys.stderr.write('The device type is not specified.')

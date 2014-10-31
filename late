@@ -1,0 +1,34 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          zte
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: late daemons
+# Description:       late daemons
+### END INIT INFO
+
+. /lib/init/vars.sh
+. /lib/lsb/init-functions
+
+# Default variables
+DEV="Telnet 10.46.74.82 10006"
+LATE="python main.py $DEV"
+
+case "$1" in
+  start)
+    nohup $LATE &
+    ;;
+  stop)
+    pkill -f "$LATE"
+    ;;
+  restart)
+    pkill -f "$LATE"
+    nohup $LATE &
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart}" >&2
+    exit 3
+    ;;
+esac
+
+exit 0
