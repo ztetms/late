@@ -13,22 +13,35 @@
 . /lib/lsb/init-functions
 
 # Default variables
-ROOT="/opt/late"
+ROOT=/opt/late
 DEV="Telnet 10.46.74.82 10006"
-LATE="python main.py $DEV"
+LATE="python late.py $DEV"
 
-cd $ROOT
+LOG="/var/log/late"
+
+# export PATH="${PATH:+$PATH:}/opt/late"
+# export PYTHONPATH=$PATH
+
+start() {
+  mkdir -p $LOG
+  cd $ROOT
+  nohup $LATE >${LOG:+$LOG/}late.out 2>&1 &
+}
+
+stop() {
+  pkill -f "$LATE"  
+}
 
 case "$1" in
   start)
-    nohup $LATE &
+    start
     ;;
   stop)
-    pkill -f "$LATE"
+    stop
     ;;
   restart)
-    pkill -f "$LATE"
-    nohup $LATE &
+    stop
+    start
     ;;
   *)
     echo "Usage: $0 {start|stop|restart}" >&2
