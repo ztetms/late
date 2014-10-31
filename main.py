@@ -19,7 +19,7 @@ def punch(user, passwd):
 		result = punch.punch()
 	else:
 		result = 'login failed'
-	logging.info('punch %s %s %s', (user, '*' * len(passwd), result))
+	logging.info('punch %s %s %s', user, '*' * len(passwd), result)
 	return result
 
 def sms_punch(cmd, arg):
@@ -48,9 +48,14 @@ def sms_send_async(daemon, sms, who, context):
 		sms.send(who, context)
 	daemon.add_command(daemon.READ_EVENT, PRIV_M)
 	daemon.add_command(send, PRIV_M)
+	
+def cut_msg(msg, max):
+	ppp = '...'
+	return msg if len(msg) <= max else '%s%s' % (msg[:max - len(ppp)], ppp)
 
 def sms_proc(daemon, sms, msg):
 	where, who, when, what = msg
+	logging.info('+SMS: %s %s %d %s', who, when, len(what), cut_msg(what, 16))
 	context = tuple(what.split(',', 1))
 	cmd = context[0].lower()
 	args = context[1] if len(context) > 1 else ''
@@ -65,18 +70,13 @@ def sms_proc(daemon, sms, msg):
 	
 def create_port(type, cfg):
 	return apply(getattr(sys.modules['gsm.port'], type), cfg)
-	
-def cut_msg(msg, max):
-	ppp = '...'
-	return msg if len(msg) <= max else '%s%s' % (msg[:max - len(ppp)], ppp)
 
 def start_daemon(dev):
-	port = create_port(dev[0], dev[1])
+	port = apply(create_port, dev)
 	gsm = GSM(port)
 	sms = GSM0705(gsm)
 	daemon = DAEMON(gsm, [])
 	def sms_handle(where, who, when, what):
-		logging.info('+SMS: %s %s %d %s' % (who, when, len(what), cut_msg(what, 16)))
 		sms_proc(daemon, sms, (where, who, when, what))
 	daemon.add_event_handle(sms.GSM0705_CMTI_HANDLE(sms_handle))
 	daemon.run()
