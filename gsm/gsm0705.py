@@ -19,15 +19,16 @@ class GSM0705:
 		return result == 'OK'
 		
 	def read(self, position):
-		result = None
 		self.config(self.CMGF_PDU)
 		expect = ['OK', 'ERROR']
 		response = self.gsm.send_cmd(self.gsm.at_cmd('%s=%d' % ('+CMGR', position)), expect)
 		result, context = self.gsm.format_response(response, expect)
-		if result == 'OK':
+		if result == 'OK' and len(''.join(context)) > 0:
 			length, index = reduce(max, zip(map(len, context), range(len(context))))
 			csca, tpdu = pdu.parse(context[index])
 			result = tpdu.oa, tpdu.scts, ''.join(map(unichr, tpdu.ud))
+		else:
+			result = None
 		return result
 
 	def send(self, to, ctx):
@@ -51,6 +52,12 @@ class GSM0705:
 	def delete(self, position):
 		expect = ['OK', 'ERROR']
 		response = self.gsm.send_cmd(self.gsm.at_cmd('%s=%d' % ('+CMGD', position)), expect)
+		result, context = self.gsm.format_response(response, expect)
+		return result == 'OK'
+
+	def delete_all(self):
+		expect = ['OK', 'ERROR']
+		response = self.gsm.send_cmd(self.gsm.at_cmd('%s=1,4' % '+CMGD'), expect)
 		result, context = self.gsm.format_response(response, expect)
 		return result == 'OK'
 
