@@ -1,0 +1,29 @@
+[loggers]
+keys=root
+
+[handlers]
+keys=stdout,file
+
+[formatters]
+keys=TNLM
+
+[logger_root]
+level=NOTSET
+handlers=stdout,file
+
+[handler_stdout]
+class=StreamHandler
+level=NOTSET
+formatter=TNLM
+args=(sys.stdout,)
+
+[handler_file]
+class=FileHandler
+level=DEBUG
+formatter=TNLM
+args=('late.log', 'a+')
+
+[formatter_TNLM]
+format=%(asctime)s - %(name)s - %(levelname)s - %(message)s
+datefmt=
+class=logging.Formatter

@@ -3,7 +3,7 @@
 
 import sys
 import shlex
-import logging
+import logging, logging.config
 
 from punch import Punch
 from gsm.gsm import GSM
@@ -84,11 +84,8 @@ def start_daemon(dev):
 def config():
 	reload(sys)
 	sys.setdefaultencoding('utf-8')
-	
-	logging.basicConfig(
-		filename = 'late.log',
-		level = logging.INFO,
-		format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+	logging.config.fileConfig('log.cfg')
 	
 if __name__ == '__main__':
 	config()
