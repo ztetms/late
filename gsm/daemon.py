@@ -73,6 +73,9 @@ class DAEMON():
 				self.engine.add_command(self.READ_EVENT(), PRIV_H)
 		return execute
 
-	def run(self):
-		self.engine.add_command(self.IDLE(), PRIV_L)
+	def run(self, times = -1):
+		for i in range(times):
+			self.engine.add_command(self.IDLE(), PRIV_L)
+		if times >= 0:
+			self.engine.add_command(self.STOP())
 		self.engine.run()

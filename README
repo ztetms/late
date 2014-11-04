@@ -18,5 +18,6 @@ True
 python -m gsm.test.test_gsm
 python -m gsm.test.test_gsm0705
 python -m gsm.test.test_daemon
+python -m test.test_late
 python -m doctest gsm/pdu.py
 

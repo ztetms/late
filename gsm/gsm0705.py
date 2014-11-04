@@ -72,6 +72,6 @@ class GSM0705:
 					who, when, what = sms
 					proc(pos, who, when, what)
 				else:
-					sys.stderr.write('read sms@%d failed.\n' % pos)
+					logging.error('Read sms@%d failed.', pos)
 			return [execute,] if event[:len(key)] == key else []
 		return handle

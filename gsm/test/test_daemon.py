@@ -5,20 +5,13 @@ import unittest
 from gsm.gsm import GSM
 from gsm.daemon import DAEMON
 from gsm.test.mock_port import MockPort
-
-class MyDaemon(DAEMON):
-	def run(self, times = 1):
-		for i in range(times):
-			self.engine.add_command(self.IDLE())
-		self.engine.add_command(self.STOP())
-		self.engine.run()
 		
 class TestEngine(unittest.TestCase):
 	def setUp(self):
 		self.record_event = []
 		self.port = MockPort(self)
 		self.gsm = GSM(self.port)
-		self.daemon = MyDaemon(self.gsm, [self.record,])
+		self.daemon = DAEMON(self.gsm, [self.record,])
 		
 	def record(self, line):
 		def execute():
