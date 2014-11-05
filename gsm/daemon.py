@@ -74,8 +74,9 @@ class DAEMON():
 		return execute
 
 	def run(self, times = -1):
-		for i in range(times):
+		for i in range(abs(times)):
 			self.engine.add_command(self.IDLE(), PRIV_L)
 		if times >= 0:
-			self.engine.add_command(self.STOP())
+			self.engine.add_command(self.STOP(), PRIV_L)
+
 		self.engine.run()

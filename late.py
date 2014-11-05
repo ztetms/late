@@ -83,6 +83,7 @@ def start_daemon(dev):
 	daemon = DAEMON(gsm, [])
 	sms_handle = SmsHandle(daemon, sms)
 	daemon.add_event_handle(sms.GSM0705_CMTI_HANDLE(sms_handle.execute))
+	daemon.add_command(sms.delete_all, PRIV_M)
 	daemon.run()
 
 def config():
