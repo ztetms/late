@@ -81,11 +81,11 @@ class CheckCode():
 		type = 'smooth' if self.count_colour(self.image) > 30 else 'sharp'
 		self.feature = FeatureFactory.create(type)
 		self.background = self.background_colour(self.image)
-		self.image.save('last.gif')
+		# self.image.save('last.gif')
 	
 	def code(self):
 		small = self.cut(self.image)
-		small.save('tmp.gif')
+		# small.save('tmp.gif')
 		result = self.read(small)
 		#if result != None:
 		#	self.image.save('%s_%s.gif' % (self.feature.type, result))
