@@ -1,6 +1,9 @@
 #! /usr/bin/env python
 #coding=utf-8
 
+import traceback
+import logging
+
 PRIV_H = 0
 PRIV_M = 1
 PRIV_L = 2
@@ -9,6 +12,7 @@ class ACTIVE_OBJECT_ENGINE():
 	def __init__(self):
 		self.empty()
 		self.__priv = range(len(self.__its_commands))
+		self.log = logging.getLogger(__name__)
 
 	def add_command(self, cmd, priv = PRIV_L):
 		assert(priv in self.__priv)
@@ -29,7 +33,11 @@ class ACTIVE_OBJECT_ENGINE():
 	def run(self):
 		while not self.is_empty():
 			cmd = self.pop_cmd()
-			cmd()
+			try:
+				cmd()
+			except Exception as exc:
+				stack = traceback.format_exc()
+				self.log.error('Execute %s error.\n%s', cmd.__name__, stack)
 
 class DAEMON():
 	def __init__(self, gsm, event_handle = []):

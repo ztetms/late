@@ -2,6 +2,8 @@
 #coding=utf-8
 
 import unittest
+import logging, logging.handlers
+
 from gsm.gsm import GSM
 from gsm.daemon import DAEMON
 from gsm.test.mock_port import MockPort
@@ -37,6 +39,18 @@ class TestEngine(unittest.TestCase):
 			self.port.mock_put_read('')
 		self.daemon.run(10)
 		self.assertEqual(events, self.record_event)
+
+	def test_exception_log(self):
+		memory_handler = logging.handlers.MemoryHandler(100)
+		log = logging.getLogger('gsm.daemon')
+		log.addHandler(memory_handler)
+		def div_0():
+			1 / 0
+		self.daemon.add_command(div_0, 0)
+		self.daemon.run(0)
+		log.removeHandler(memory_handler)
+		log_string = '\n'.join(map(lambda log: '\n'.join(log.getMessage().split('\n')[:2]), memory_handler.buffer))
+		self.assertEqual(log_string, 'Execute div_0 error.\nTraceback (most recent call last):')
 
 if __name__ == '__main__':
 	unittest.main()
