@@ -103,13 +103,17 @@ class UD_7BIT():
 	@staticmethod
 	def get_7bit(pos, bytes):
 		'''
+		[50][0] -> 50
+		>>> UD_7BIT.get_7bit(0, [50])
+		50
+		
 		[0x90, 0x3F][1] -> 0x7F
 		>>> UD_7BIT.get_7bit(1, [128, 63])
 		127
 		'''
 		offset = pos * 7
 		byte, bit = offset / 8, offset % 8
-		return ((bytes[byte] >> bit) | (bytes[byte + 1] << (8 - bit))) & 0x7F
+		return ((bytes[byte] >> bit) | (bytes[byte + 1] << (8 - bit) if (8 - bit) < 7 else 0)) & 0x7F
 		
 class UD_8BIT():
 	@staticmethod

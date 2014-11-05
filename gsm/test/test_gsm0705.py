@@ -51,6 +51,23 @@ class TestCmgR(unittest.TestCase):
 		self.assertEqual(what, u'\x06\x05\x04\x0b\x84#\xf0@\x06$application/vnd.wap.mms-message\x00\xb4\x87\xaf\x84\x8c\x82\x98VOxaBQFKO4FC\x00\x8d\x90\x83http://221.131.128.129/VOxaBQFKO4FC\x00\x88\x05\x81\x03\x02\xca\r\x89\x07\x8012371\x00\x8a\x80\x8e\x02\xcd~')
 		self.assertEqual('AT+CMGF=0\r\nAT+CMGR=1\r\n', self.port.mock_get_write())
 		
+	def test_read_simple(self):
+		read = (
+				'AT+CMGR=4\r\n',
+				'\r\n',
+				'+CMGR: 4,"",28\r\n',
+				'0891683108200505F0040D91683118140276F800004111502164332309F0BA7B8C66C55832\r\n',
+				'\r\n',
+				'OK\r\n')
+		self.port.mock_put_read_multi(CMG_CFG_0)
+		self.port.mock_put_read_multi(read)
+		sms = self.sms.read(4)
+		who, when, what = sms
+		self.assertEqual(who, '+8613814120678')
+		self.assertEqual(str(when), '2014-11-05 12:46:33+08:00')
+		self.assertEqual(what, u'punch,1,2')
+		self.assertEqual('AT+CMGF=0\r\nAT+CMGR=4\r\n', self.port.mock_get_write())
+
 	def test_noexist(self):
 		self.port.mock_put_read_multi(CMG_CFG_0)
 		self.port.mock_put_read('AT+CMGR=1\r\n')
