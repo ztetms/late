@@ -33,14 +33,31 @@ def sms_punch(cmd, arg):
 		
 	return result
 
+CMD = {
+	u'punch': sms_punch,
+}
 
-class SmsHandle():
-	CMD = {
-		u'punch': sms_punch,
-	}
-	def __init__(self, daemon, sms):
+class CmdProc:
+	def __init__(self, cmds):
+		self.cmds = cmds
+
+	def get_proc(self, cmd):
+		def invalid_cmd_proc(cmd, args):
+			logging.warning('Unknown command %s.' % cmd)
+			return None
+		return self.cmds.get(cmd, invalid_cmd_proc)
+
+	def execute(self, who, when, what):
+		context = tuple(what.split(',', 1))
+		cmd = context[0].lower()
+		args = context[1] if len(context) > 1 else ''
+		return cmd + u'->' + self.get_proc(cmd)(cmd, args)
+
+class SmsHandle:
+	def __init__(self, daemon, sms, proc):
 		self.daemon = daemon
 		self.sms = sms
+		self.proc = proc
 	
 	@staticmethod
 	def cut_msg(msg, max):
@@ -61,17 +78,11 @@ class SmsHandle():
 
 	def execute(self, where, who, when, what):
 		logging.info('+SMS: %s %s %d %s', who, when, len(what), self.cut_msg(what, 16))
-		context = tuple(what.split(',', 1))
-		cmd = context[0].lower()
-		args = context[1] if len(context) > 1 else ''
-		
 		self.sms_del_async(where)
 		
-		if cmd in self.CMD:
-			result = self.CMD[cmd](cmd, args)
-			self.sms_send_async(who, u''.join([cmd, '->', result]))
-		else:
-			logging.warning('Unknown SMS command %s.' % cmd)
+		result = self.proc.execute(who, when, what)
+		if result != None:
+			self.sms_send_async(who, result)
 	
 def create_port(type, cfg):
 	return apply(getattr(sys.modules['gsm.port'], type), cfg)
@@ -81,7 +92,7 @@ def start_daemon(dev):
 	gsm = GSM(port)
 	sms = GSM0705(gsm)
 	daemon = DAEMON(gsm, [])
-	sms_handle = SmsHandle(daemon, sms)
+	sms_handle = SmsHandle(daemon, sms, CmdProc(CMD))
 	daemon.add_event_handle(sms.GSM0705_CMTI_HANDLE(sms_handle.execute))
 	daemon.add_command(sms.delete_all, PRIV_M)
 	daemon.run()

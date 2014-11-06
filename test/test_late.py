@@ -3,6 +3,7 @@
 
 import unittest
 
+from late import CmdProc
 from late import SmsHandle
 from gsm.gsm import GSM
 from gsm.gsm0705 import GSM0705
@@ -26,19 +27,18 @@ class MyGSM0705(GSM0705):
 	def send(self, to, ctx):
 		self.list_send.append((to, ctx))	
 
-class MySmsHandle(SmsHandle):
-	def __init__(self, daemon, sms):
-		SmsHandle.__init__(self, daemon, sms)
-		self.CMD = {'punch': self.punch}
-		self.punch = []
-		self.punch_result = []
+class CmdStat():
+	def __init__(self, cmd):
+		self.cmd = {cmd: self.trig}
+		self.stat = []
+		self.cmd_result = []
 
 	def add_cmd_result(self, result):
-		self.punch_result.append(result)
+		self.cmd_result.append(result)
 
-	def punch(self, cmd, arg):
-		self.punch.append((cmd, arg))
-		return self.punch_result.pop(0)
+	def trig(self, cmd, arg):
+		self.stat.append((cmd, arg))
+		return self.cmd_result.pop(0)
 
 class TestSmsHandle(unittest.TestCase):
 	def setUp(self):
@@ -47,12 +47,13 @@ class TestSmsHandle(unittest.TestCase):
 		self.daemon = DAEMON(self.gsm)
 		
 	def test_sms_punch(self):
-		sms_handle = MySmsHandle(self.daemon, self.sms)
 		where, who, when, what = (1, u'10086', u'2014-10-21 15:10:18+08:00', u'punch,10012345,password')
-		sms_handle.add_cmd_result(u'failed.')
+		cmd_stat = CmdStat('punch')
+		cmd_stat.add_cmd_result(u'failed.')
+		sms_handle = SmsHandle(self.daemon, self.sms, CmdProc(cmd_stat.cmd))
 		sms_handle.execute(where, who, when, what)
 		self.daemon.run(1)
-		self.assertEqual(u'punch:10012345,password', ';'.join(map(':'.join, sms_handle.punch)))
+		self.assertEqual(u'punch:10012345,password', ';'.join(map(':'.join, cmd_stat.stat)))
 		self.assertEqual([1], self.sms.list_delete)
 		self.assertEqual(u'10086,punch->failed.', ';'.join(map(','.join, self.sms.list_send)))
 
