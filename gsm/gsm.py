@@ -57,3 +57,6 @@ class GSM:
 		response = self.send_cmd(self.at_cmd(), expect)
 		result, context = self.format_response(response, expect)
 		return result == 'OK'
+
+	def quiet_time(self):
+		return self.port.quiet_time()

@@ -10,9 +10,9 @@ PRIV_L = 2
 
 class ACTIVE_OBJECT_ENGINE():
 	def __init__(self):
+		self.log = logging.getLogger(__name__)
 		self.empty()
 		self.__priv = range(len(self.__its_commands))
-		self.log = logging.getLogger(__name__)
 
 	def add_command(self, cmd, priv = PRIV_L):
 		assert(priv in self.__priv)
@@ -41,7 +41,9 @@ class ACTIVE_OBJECT_ENGINE():
 
 class DAEMON():
 	def __init__(self, gsm, event_handle = []):
+		self.log = logging.getLogger(__name__)
 		self.gsm = gsm
+		self.gsm_ready = True
 		self.event_handle = event_handle
 		self.engine = ACTIVE_OBJECT_ENGINE()
 
@@ -64,8 +66,10 @@ class DAEMON():
 		
 	def IDLE(self):
 		def execute():
+			quiet_too_long = self.gsm.quiet_time() > 5
+			next = self.TEST() if quiet_too_long else self.READ_EVENT()
+			self.engine.add_command(next, PRIV_L)
 			self.engine.add_command(self.IDLE(), PRIV_L)
-			self.engine.add_command(self.READ_EVENT(), PRIV_H)
 		return execute
 
 	def DISPATCH_EVENT(self, line):
@@ -79,6 +83,14 @@ class DAEMON():
 			if len(line) > 0:
 				self.engine.add_command(self.DISPATCH_EVENT(line), PRIV_M)
 				self.engine.add_command(self.READ_EVENT(), PRIV_H)
+		return execute
+
+	def TEST(self):
+		def execute():
+			gsm_ready = self.gsm.test()
+			if not gsm_ready and gsm_ready != self.gsm_ready:
+				self.log.error('GSM is offline.')
+			self.gsm_ready = gsm_ready
 		return execute
 
 	def run(self, times = -1):
