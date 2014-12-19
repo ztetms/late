@@ -4,6 +4,8 @@
 import traceback
 import logging
 
+import time
+
 PRIV_H = 0
 PRIV_M = 1
 PRIV_L = 2
@@ -39,6 +41,9 @@ class ACTIVE_OBJECT_ENGINE():
 				stack = traceback.format_exc()
 				self.log.error('Execute %s error.\n%s', cmd.__name__, stack)
 
+	def show(self):
+		print self.__its_commands
+
 class DAEMON():
 	def __init__(self, gsm, event_handle = []):
 		self.log = logging.getLogger(__name__)
@@ -66,9 +71,9 @@ class DAEMON():
 		
 	def IDLE(self):
 		def execute():
-			quiet_too_long = self.gsm.quiet_time() > 300
+			quiet_too_long = self.gsm.quiet_time() > 60
 			next = self.TEST() if quiet_too_long else self.READ_EVENT()
-			self.engine.add_command(next, PRIV_L)
+			self.engine.add_command(next, PRIV_H)
 			self.engine.add_command(self.IDLE(), PRIV_L)
 		return execute
 
@@ -85,12 +90,32 @@ class DAEMON():
 				self.engine.add_command(self.READ_EVENT(), PRIV_H)
 		return execute
 
+	def CONNECT(self, times = 1):
+		def execute():
+			self.log.debug('Connecting to GSM.(%d)', times)
+			self.gsm.port.connect()
+			if self.gsm.port.connected:
+				self.engine.add_command(self.TEST(), PRIV_H)
+			else:
+				time.sleep(30)
+				self.engine.add_command(self.CONNECT(times + 1), PRIV_H)				
+		return execute
+
+	def update_gsm_ready(self, ready):
+		if ready != self.gsm_ready:
+			if ready:
+				self.log.info('GSM is online.')
+			else:				
+				self.log.error('GSM is offline.')
+			self.gsm_ready = ready
+
 	def TEST(self):
 		def execute():
-			gsm_ready = self.gsm.test()
-			if not gsm_ready and gsm_ready != self.gsm_ready:
-				self.log.error('GSM is offline.')
-			self.gsm_ready = gsm_ready
+			if self.gsm.port.connected:
+				self.update_gsm_ready(self.gsm.test())
+			if not self.gsm.port.connected:
+				self.update_gsm_ready(False)
+				self.engine.add_command(self.CONNECT(), PRIV_H)
 		return execute
 
 	def run(self, times = -1):
