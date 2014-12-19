@@ -66,7 +66,7 @@ class DAEMON():
 		
 	def IDLE(self):
 		def execute():
-			quiet_too_long = self.gsm.quiet_time() > 5
+			quiet_too_long = self.gsm.quiet_time() > 300
 			next = self.TEST() if quiet_too_long else self.READ_EVENT()
 			self.engine.add_command(next, PRIV_L)
 			self.engine.add_command(self.IDLE(), PRIV_L)
