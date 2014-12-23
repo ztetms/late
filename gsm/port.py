@@ -73,8 +73,12 @@ class Telnet(PortBase):
 		self.port.close()
 
 	def dev_connect(self):
-		self.port = telnetlib.Telnet(self.__host, port = self.__port, timeout = 1)
-		return True
+		try:
+			self.port = telnetlib.Telnet(self.__host, port = self.__port, timeout = 1)
+			success = True
+		except:
+			success = False
+		return success
 
 	def dev_read(self):
 		buf = ''
